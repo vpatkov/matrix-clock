@@ -1,0 +1,24 @@
+0	0.pbm
+1	1.pbm
+2	2.pbm
+3	3.pbm
+4	4.pbm
+5	5.pbm
+6	6.pbm
+7	7.pbm
+8	8.pbm
+9	9.pbm
+H	H.pbm
+I	I.pbm
+O	O.pbm
+P	P.pbm
+-	minus.pbm
++	plus.pbm
+
+0x01	up-arrow.pbm
+0x02	down-arrow.pbm
+0x03	min.pbm
+0x04	max.pbm
+0x20	space.pbm
+
+default	default.pbm

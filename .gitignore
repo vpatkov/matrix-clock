@@ -1,0 +1,11 @@
+*~
+*.o
+*.lss
+*.elf
+*.d
+*.hex
+*.s#?
+*.b#?
+firmware/base/font5x8.hpp
+software/matrix-clock
+hardware/gerbers/
