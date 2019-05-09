@@ -478,7 +478,7 @@ int main()
                         flags.refresh_screen = 0;
                 }
 
-                /* Show clock and the weather change for 24 hours */
+                /* Show the weather change for 24 hours */
                 if (flags.refresh_screen && screen.x != ScreenX::clock && screen.y == ScreenY::change) {
                         Weather old = history.weather[(history.current + 1) % history_size];
                         int16_t diff = INT16_MAX;
@@ -520,7 +520,7 @@ int main()
                         flags.refresh_screen = 0;
                 }
 
-                /* Show clock and minimal values of weather parameters for 24 hours */
+                /* Show minimal values of weather parameters for 24 hours */
                 if (flags.refresh_screen && screen.x != ScreenX::clock && screen.y == ScreenY::minimal) {
                         switch (screen.x) {
                         case ScreenX::temperature_outdoor: {
@@ -579,7 +579,7 @@ int main()
                         flags.refresh_screen = 0;
                 }
 
-                /* Show clock and maximal values of wether parameters for 24 hours */
+                /* Show maximal values of wether parameters for 24 hours */
                 if (flags.refresh_screen && screen.x != ScreenX::clock && screen.y == ScreenY::maximal) {
                         switch (screen.x) {
                         case ScreenX::temperature_outdoor: {

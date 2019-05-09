@@ -1,4 +1,4 @@
-## Matrix Clock with Weather Station
+# Matrix Clock with Weather Station
 
 ![Base station](assets/base-station.gif)
 
@@ -34,9 +34,9 @@ the top right corner appears on the outdoor temperature screen.
 It's a project I made for personal use in 2014 with some updates then.
 It's based on my own preferences and ad hoc decisions. Also, it's my first
 real-world electronic project after "LED blinking", and so have many design
-lacks. Anyway, I hope the sources can be useful for somebody.
+lacks. Anyway, I hope the sources can be useful for someone.
 
-### Technical details
+## Technical details
 
 The base station is a sandwich of two boards called in sources as `base` and
 `matrix`. The `base` board contains an MCU, indoor sensors, RF module, and other
@@ -66,7 +66,7 @@ material using the `case/base-station.svg` file.
 The case for the outdoor module is 3D printed from the `case/outdoor-case.stl`
 and `case/outdoor-cover.stl` files.
 
-### License
+## License
 
 Creative Commons Zero 1.0
 
