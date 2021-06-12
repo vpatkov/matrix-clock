@@ -1,6 +1,6 @@
 # Matrix Clock with Weather Station
 
-![Base station](assets/base-station.gif)
+![](photos/base-station.gif)
 
 Not too small, not too big, auto-syncing clock with wide viewing angle,
 pretty bright at sunny day and not too bright at night, having a
@@ -16,7 +16,7 @@ simple weather station, without any wires except a Micro-USB power.
 The project includes a base station with a LED matrix display, and two
 wireless modules: for measuring outdoor temperature and syncing time with a PC.
 
-![Outdoor module](assets/outdoor.png) ![PC link module](assets/pc-link.png)
+![](photos/outdoor.png) ![](photos/pc-link.png)
 
 The latter is just a wireless interface between a PC and the base station and
 can be upgraded by software to make more complex stuff like showing arbitrary
@@ -34,7 +34,8 @@ the top right corner appears on the outdoor temperature screen.
 It's a project I made for personal use in 2014 with some updates then.
 It's based on my own preferences and ad hoc decisions. Also, it's my first
 real-world electronic project after "LED blinking", and so have many design
-lacks. Anyway, I hope the sources can be useful for someone.
+lacks. Maybe I'll remake it some day. Anyway, I hope the sources can be useful
+for someone.
 
 ## Technical details
 

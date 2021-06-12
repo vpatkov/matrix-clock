@@ -1,40 +1,34 @@
 /*
- * Formatted output for embedded systems
+ * Formatted output for small microcontrollers
  *
- * %[flags][minimal-width][.maximal-width][length]specifier
+ * %[flags][width][.precison][length]specifier
  *
- * Like standard printf <http://www.cplusplus.com/reference/cstdio/printf/>
- * except:
+ * Some differences from the standard printf:
  *
- *   1. Return void, not int.
+ *   - No floating point support.
  *
- *   2. No floating point support.
+ *   - Supported flags: -, +, 0, space, and also:
  *
- *   3. Supported flags: - + 0 (space), and additional flags:
+ *       =<char>  Pad with <char> (except *).
+ *       =*       Pad with a character taken from the argument.
  *
- *         =<char>  Pad with <char> (except *).
- *         =*       Pad with the character given from the argument (int).
+ *   - Width and precision have maximum value of 254. If '*' then take
+ *     its value from the argument.
  *
- *   4. Sub-specifiers <minimal-width> and <maximal-width> are respectively
- *      the minimal and maximal number of characters to be printed. Both
- *      work with any specifier, support * (value from argument), and have
- *      size_t type.
+ *   - Supported specifiers: d, i, u, o, x, X, c, s, %, and also:
  *
- *   5. Supported specifiers: d i u o x X c s %, and additional specifiers:
+ *       S        On Harvard architectures, a string in the program memory.
+ *                On von Neumann architectures, the same as 's'.
+ *       b        Unsigned binary integer.
  *
- *         S        On Harvard architectures the argument is a pointer to a
- *                  string in the program memory. On von Neumann architectures
- *                  this is a synonim for 's' specifier.
- *         b        Unsigned binary integer.
+ *   - Length: 'l' for 32 bits, nothing for int (at least 16 bits).
  *
- *   6. Supported length: l z.
- *
- *   7. On Harvard architectures the format string must lie in the program
- *      memory.
+ *   - On Harvard architectures the format string must be placed in the
+ *     program memory.
  */
 
-#ifndef PRINT_H_
-#define PRINT_H_
+#ifndef PRINT_HPP_
+#define PRINT_HPP_
 
 #include <stdarg.h>
 

@@ -1,11 +1,14 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <limits.h>
+#include "common.hpp"
 #include "print.hpp"
 
-/* For Harvard architectures define "pm_read(p)" to read one byte from the
+/*
+ * For Harvard architectures define "pm_read(p)" to read one byte from a
  * program memory pointer "p", and "pm_attr" to the attribute for data to be
- * stored in the program memory.
+ * placed in the program memory.
  */
 #if defined(__AVR_ARCH__)       /* AVR */
 #  include <avr/pgmspace.h>
@@ -33,135 +36,125 @@ void Print::vprintf(const char *format, va_list args)
                 bool negative: 1;
                 bool left_justify: 1;
                 bool uppercase: 1;
-                bool length_long: 1;
-                bool length_size_t: 1;
+                bool length_32: 1;
         };
 
-        for (char c = pm_read(format++); c != '\0'; c = pm_read(format++))
+        for (char c = pm_read(format++); c != 0; c = pm_read(format++))
         {
                 if (c != '%') {
                         putc(c);
                         continue;
                 }
 
-                /*------------------------------*/
-                /* Process "flags"              */
-                /*------------------------------*/
+                /* ======== Flags ======== */
 
                 Options options = {};
                 char pad = ' ';
+next_flag:
                 switch (c = pm_read(format++)) {
                 case '+':
                         options.force_sign = 1;
-                        c = pm_read(format++);
-                        break;
+                        goto next_flag;
                 case '-':
                         options.left_justify = 1;
-                        c = pm_read(format++);
-                        break;
+                        goto next_flag;
                 case '0':
                         pad = '0';
-                        c = pm_read(format++);
-                        break;
+                        goto next_flag;
                 case ' ':
                         options.space_for_plus = 1;
-                        c = pm_read(format++);
-                        break;
+                        goto next_flag;
                 case '=':
-                        if ((c = pm_read(format++)) == '\0')
+                        c = pm_read(format++);
+                        if (c == 0)
                                 break;
-                        else if (c == '*')
-                                pad = static_cast<char>(va_arg(args, int));
+                        if (c == '*')
+                                pad = va_arg(args, int);
                         else
                                 pad = c;
-                        c = pm_read(format++);
-                        break;
+                        goto next_flag;
                 }
 
-                if (c == '\0')
+                if (c == 0)
                         break;
 
-                /*------------------------------*/
-                /* Process "minimal-width"      */
-                /*------------------------------*/
+                /* ======== Width ======== */
 
-                size_t min_width = 0;
+                uint8_t width = 0;
                 if (c == '*') {
-                        min_width = va_arg(args, size_t);
+                        width = va_arg(args, int);
                         c = pm_read(format++);
                 } else {
-                        for (min_width = 0; c >= '0' && c <= '9'; c = pm_read(format++))
-                                min_width = min_width * 10 + (c - '0');
-                }
-
-                if (c == '\0')
-                        break;
-
-                /*------------------------------*/
-                /* Process "maximal-width"      */
-                /*------------------------------*/
-
-                size_t max_width = SIZE_MAX;
-                if (c == '.') {
-                        if ((c = pm_read(format++)) == '\0')
-                                break;
-                        else if (c == '*') {
-                                max_width = va_arg(args, size_t);
+                        while (c >= '0' && c <= '9') {
+                                width = width * 10 + c - '0';
                                 c = pm_read(format++);
-                        } else {
-                                for (max_width = 0; c >= '0' && c <= '9'; c = pm_read(format++))
-                                        max_width = max_width * 10 + (c - '0');
                         }
                 }
 
-                if (c == '\0')
+                if (c == 0)
                         break;
 
-                if (max_width < min_width)
-                        continue;
+                /* ======== Precision ======== */
 
-                /*------------------------------*/
-                /* Process "length"             */
-                /*------------------------------*/
+                uint8_t precision = 0;
+                if (c == '.') {
+                        c = pm_read(format++);
+                        if (c == '*') {
+                                precision = va_arg(args, int);
+                                c = pm_read(format++);
+                        } else {
+                                while (c >= '0' && c <= '9') {
+                                        precision = precision * 10 + c - '0';
+                                        c = pm_read(format++);
+                                }
+                        }
+                }
+
+                /* ======== Length ======== */
 
                 if (c == 'l') {
-                        options.length_long = 1;
-                        c = pm_read(format++);
-                } else if (c == 'z') {
-                        options.length_size_t = 1;
+                        options.length_32 = 1;
                         c = pm_read(format++);
                 }
 
-                if (c == '\0')
+                if (c == 0)
                         break;
 
-                /*------------------------------*/
-                /* Process "specifier"          */
-                /*------------------------------*/
+                /* ======== Specifier ======== */
 
                 uint8_t base;
                 switch (c) {
                 case 's':
                 case 'S': {
-                        uint8_t i = 0;
+                        if (precision == 0)
+                                precision = 254;
+
+                        uint8_t len = 0;
                         const char *s = va_arg(args, const char *);
-                        for (; ((c == 's') ? s[i] : pm_read(&s[i])) != '\0'; i++)
-                                ;
+                        while (len < precision && (c == 's' ? s[len] : pm_read(&s[len])) != 0)
+                                len++;
 
-                        while (!options.left_justify && i++ < min_width)
-                                putc(pad);
+                        if (!options.left_justify)
+                                for (uint8_t i = len; i < width; i++)
+                                        putc(pad);
 
-                        uint8_t k = max_width - ((min_width > i) ? min_width - i : 0);
-                        for (char d; (d = (c == 's') ? *s : pm_read(s)) != '\0' && k-- != 0; s++)
-                                putc(d);
+                        for (uint8_t i = 0; i < len; i++)
+                                putc(c == 's' ? s[i] : pm_read(&s[i]));
 
-                        while (i++ < min_width)
-                                putc(pad);
+                        if (options.left_justify)
+                                for (uint8_t i = len; i < width; i++)
+                                        putc(pad);
 
                         continue;
                 }
                 case 'c':
-                        putc(static_cast<char>(va_arg(args, int)));
+                        if (!options.left_justify)
+                                for (uint8_t i = 1; i < width; i++)
+                                        putc(pad);
+                        putc(va_arg(args, int));
+                        if (options.left_justify)
+                                for (uint8_t i = 1; i < width; i++)
+                                        putc(pad);
                         continue;
                 case 'i':
                 case 'd':
@@ -186,15 +179,12 @@ void Print::vprintf(const char *format, va_list args)
                         continue;
                 }
 
-                /*------------------------------*/
-                /* Print the integer            */
-                /*------------------------------*/
+                /* ======== Print the integer ======== */
 
-                unsigned long val;
-                if (options.length_long)
-                        val = va_arg(args, unsigned long);
-                else if (options.length_size_t)
-                        val = va_arg(args, size_t);
+                static_assert(UINT32_MAX >= UINT_MAX, "");
+                uint32_t val;
+                if (options.length_32)
+                        val = va_arg(args, uint32_t);
                 else
                         val = va_arg(args, int);
 
@@ -203,35 +193,42 @@ void Print::vprintf(const char *format, va_list args)
                         options.negative = 1;
                 }
 
-                static const uint8_t digits[] pm_attr = "0123456789abcdef";
-                char buf[16];
-                uint8_t i = 0;
+                char buf[256];
+                uint8_t len = 0;
                 do {
-                        char d = pm_read(&digits[val % base]);
+                        char d = val % base;
                         val /= base;
-                        if (d >= 'a' && options.uppercase)
-                                d += 0x20;
-                        buf[i++] = d;
-                } while (val > 0 && i < sizeof(buf)-2);  /* -2: sign and '\0' */
+                        if (d > 9)
+                                d += options.uppercase ? 0x07 : 0x27;
+                        buf[len++] = d + '0';
+                } while (val > 0);
 
-                if (options.negative)
-                        buf[i++] = '-';
-                else if (options.force_sign)
-                        buf[i++] = '+';
-                else if (options.space_for_plus)
-                        buf[i++] = ' ';
+                while (len < precision)
+                        buf[len++] = '0';
 
-                uint8_t j = i;
-                uint8_t k = max_width - ((min_width > i) ? min_width - i : 0);
+                char sign_char =
+                        options.negative ? '-' :
+                        options.force_sign ? '+' :
+                        options.space_for_plus ? ' ' : 0;
 
-                while (!options.left_justify && j++ < min_width)
-                        putc(pad);
+                uint8_t len_ = len;
+                if (sign_char != 0) {
+                        len_++;
+                        if (pad == '0')
+                                putc(sign_char);
+                        else
+                                buf[len++] = sign_char;
+                }
 
-                do {
-                        putc(buf[--i]);
-                } while (i != 0 && k-- != 0);
+                if (!options.left_justify)
+                        for (uint8_t i = len_; i < width; i++)
+                                putc(pad);
 
-                while (j++ < min_width)
-                        putc(pad);
+                for (uint8_t i = len; i; i--)
+                        putc(buf[i-1]);
+
+                if (options.left_justify)
+                        for (uint8_t i = len_; i < width; i++)
+                                putc(pad);
         }
 }
