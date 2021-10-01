@@ -1,9 +1,0 @@
-[Unit]
-Description=Matrix Clock
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/matrix-clock
-
-[Install]
-WantedBy=multi-user.target

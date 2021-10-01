@@ -3,17 +3,12 @@
 #include <ctime>
 #include <cstring>
 #include <cerrno>
-#include <csignal>
 #include <ctime>
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
 
 using namespace std;
-
-const unsigned int sync_period = 60;    /* Seconds */
-
-static bool stop = false;
 
 /* Configure serial port for 9600-8N1 */
 static bool configure_port(int uart)
@@ -43,70 +38,51 @@ static bool configure_port(int uart)
         return true;
 }
 
-/* SIGTERM handler: stop the daemon */
-static void stop_daemon(int unused)
-{
-        stop = true;
-}
-
-/* SIGUSR1 handler: wake up from sleep, that cause forced sync */
-static void nothing(int unused)
-{
-        /* nothing */
-}
-
 int main(int argc, char **argv)
 {
-        /* Set signal handlers */
-        for (int s = 1; s <= _NSIG; s++) {
-                if (s == SIGTERM || s == SIGINT)
-                        signal(s, stop_daemon);
-                else if (s == SIGUSR1)
-                        signal(s, nothing);
-                else
-                        signal(s, SIG_IGN);
+        if (argc <= 1 || strcmp(argv[1], "--sync-time")) {
+                fprintf(stderr, "Usage: matrix-clock [--sync-time [port]]\n");
+                return 1;
         }
 
         /* Open serial port */
-        const char *uart_name = (argc > 1) ? argv[1] : "/dev/ttyUSB0";
+        const char *uart_name = (argc > 2) ? argv[2] : "/dev/ttyUSB0";
         int uart = open(uart_name, O_RDWR | O_NOCTTY | O_NDELAY);
         if (uart < 0) {
                 fprintf(stderr, "Can't open %s: %s\n", uart_name, strerror(errno));
-                return 1;
+                return 2;
         }
 
-        /* Configure for 9600-8N1 */
+        /* Configure the port */
         if (!configure_port(uart)) {
-                fprintf(stderr, "Can't configure port %s: %s\n", uart_name, strerror(errno));
-                return 1;
+                fprintf(stderr, "Can't configure %s: %s\n", uart_name, strerror(errno));
+                return 3;
         }
 
-        for (; !stop; sleep(sync_period))
-        {
-                /* Get current time */
-                time_t now = time(0);
-                tm *t = localtime(&now);
+        /* Get current time */
+        time_t now = time(0);
+        tm *t = localtime(&now);
 
-                /* Send packet */
-                uint8_t d[5] = {0xaa, t->tm_hour, t->tm_min, t->tm_sec,
-                        ~(t->tm_hour ^ t->tm_min ^ t->tm_sec)};
-                if (write(uart, d, 5) < 5) {
-                        fprintf(stderr, "Can't write to %s: %s\n", uart_name, strerror(errno));
-                        continue;
-                }
-
-                /* Check ack (checksum echo) */
-                if (read(uart, d, 1) < 1) {
-                        fprintf(stderr, "No ack from pc-link: %s\n", strerror(errno));
-                        continue;
-                }
-                if (d[0] != d[4]) {
-                        fprintf(stderr, "Bad connection: xmit checksum 0x%02x, recv checksum 0x%02x\n",
-                                d[4], d[0]);
-                        continue;
-                }
+        /* Send the packet */
+        uint8_t d[5] = {0xaa, t->tm_hour, t->tm_min, t->tm_sec,
+                ~(t->tm_hour ^ t->tm_min ^ t->tm_sec)};
+        if (write(uart, d, 5) < 5) {
+                fprintf(stderr, "Can't write to %s: %s\n", uart_name, strerror(errno));
+                return 4;
         }
 
+        /* Check ack (checksum echo) */
+        if (read(uart, d, 1) < 1) {
+                fprintf(stderr, "No ack from pc-link: %s\n", strerror(errno));
+                return 5;
+        }
+        if (d[0] != d[4]) {
+                fprintf(stderr, "Bad connection: xmit checksum 0x%02x, recv checksum 0x%02x\n",
+                        d[4], d[0]);
+                return 6;
+        }
+
+        /* Flush and close the port */
         tcflush(uart, TCIOFLUSH);
         close(uart);
 
